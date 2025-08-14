@@ -1,7 +1,7 @@
 # Ethereum Wire Protocol (ETH)
 
 'eth' is a protocol on the [RLPx] transport that facilitates exchange of Ethereum
-blockchain information between peers. The current protocol version is **eth/69**. See end
+blockchain information between peers. The current protocol version is **eth/70**. See end
 of document for a list of changes in past protocol versions.
 
 ### Basic Operation
@@ -361,11 +361,13 @@ of the sending node.
 
 ### Transactions (0x02)
 
-`[tx₁, tx₂, ...]`
+`[[tx₁, tx₂, ...], custodyInfo: B]`
 
 Specify transactions that the peer should make sure is included on its transaction queue.
 The items in the list are transactions in the format described in the main Ethereum
-specification. Transactions messages must contain at least one (new) transaction, empty
+specification. The custodyInfo element is a bitmap representing which cell IDs in transaction 
+payloads are stored by the sending peer, with each stored cell’s index marked as 1. 
+Transactions messages must contain at least one (new) transaction, empty
 Transactions messages are discouraged and may lead to disconnection.
 
 Nodes must not resend the same transaction to a peer in the same session and must not
@@ -418,24 +420,30 @@ block.
 
 ### NewPooledTransactionHashes (0x08)
 
-`[txtypes: B, [txsize₁: P, txsize₂: P, ...], [txhash₁: B_32, txhash₂: B_32, ...]]`
+`[txtypes: B, [txsize₁: P, txsize₂: P, ...], [txhash₁: B_32, txhash₂: B_32, ...], custodyInfo: B]`
 
 This message announces one or more transactions that have appeared in the network and
 which have not yet been included in a block. The message payload describes a list of of
-transactions, but note that it is encoded as three separate elements.
+transactions, but note that it is encoded as four separate elements.
 
 The `txtypes` element is a byte array containing the announced [transaction types]. The
-other two payload elements refer to the sizes and hashes of the announced transactions.
-All three payload elements must contain an equal number of items.
+other three payload elements refer to the sizes, hashes of the announced transactions 
+and the cell IDs that the sending peer has stored.
+The txtypes, sizes, and hashes must contain an equal number of items.
 
 `txsizeₙ` refers to the length of the 'consensus encoding' of a typed transaction, i.e.
 the byte size of `tx-type || tx-data` for typed transactions, and the size of the
 RLP-encoded `legacy-tx` for non-typed legacy transactions.
 
+The custodyInfo element is a bitmap marking the IDs of cells in the transaction payload 
+stored by the sending peer, with each stored cell’s index set to 1.
+
 The recommended soft limit for this message is 4096 items (~150 KiB).
 
 To be maximally helpful, nodes should inform peers of all transactions that they may not
-be aware of. However, nodes should only announce hashes of transactions that the remote
+be aware of. This includes cases where the remote peer might not have the transaction 
+itself or the cells corresponding to its cel IDs.
+However, nodes should only announce hashes of transactions that the remote
 peer could reasonably be considered not to know, but it is better to return more
 transactions than to have a nonce gap in the pool.
 
@@ -509,7 +517,31 @@ received updates.
   At the same time, client implementations must take care to not disconnect all syncing
   peers purely on the basis of their BlockRangeUpdate.
 
+### GetCellAndProofs (0x12)
+
+`[request-id: P, [vhash₁: B_32, vhash₂: B_32, ...], custodyInfo: B]`
+
+This message request peer to return cells and proofs of the given payload hashes.
+The custodyInfo element represents IDs of cells required.
+
+### CellAndProofs (0x13)
+
+`[request-id: P, [[vhash₁: B_32, [cellAndProof₁: B, cellAndProof₂: B, ...]], [vhash₂: B_32, [cellAndProof₁: B, cellAndProof₂: B, ...], ...]` 
+
+This is a response to GetCellAndProofs, which provides the requested cells and their proofs. 
+Each list element contains the versioned hash of the payload commitment that includes 
+the cell, the cell itself, and a proof to verify the cell’s inclusion. 
+Each element must match the vhash specified in the request. 
+The sender can skip any cells that are not available, so the requester can fetch them 
+from other peers.
+
 ## Change Log
+
+### eth/70 ()
+
+Version 70 changed the [Transactions] and [NewPooledTransactionHashes] message to include 
+custody information which represents cell IDs sending peer has stored. New message types,
+[GetCells] and [Cells] were introduced to support cell-level messaging.
 
 ### eth/69 ([EIP-7642], April 2025)
 
