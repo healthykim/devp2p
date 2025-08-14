@@ -521,12 +521,13 @@ received updates.
 
 `[request-id: P, [vhash₁: B_32, vhash₂: B_32, ...], custodyInfo: B]`
 
-This message request peer to return cells and proofs of the given payload hashes.
+This message request peer to return cells and proofs of the given versioned hash 
+of the payload commitment.
 The custodyInfo element represents IDs of cells required.
 
 ### CellAndProofs (0x13)
 
-`[request-id: P, [[vhash₁: B_32, [cellAndProof₁: B, cellAndProof₂: B, ...]], [vhash₂: B_32, [cellAndProof₁: B, cellAndProof₂: B, ...], ...]` 
+`[request-id: P, [[vhash₁: B_32, [cellAndProof₁: B, cellAndProof₂: B, ...]], [vhash₂: B_32, [cellAndProof₁: B, cellAndProof₂: B, ...]], ...]]` 
 
 This is a response to GetCellAndProofs, which provides the requested cells and their proofs. 
 Each list element contains the versioned hash of the payload commitment that includes 
@@ -534,6 +535,11 @@ the cell, the cell itself, and a proof to verify the cell’s inclusion.
 Each element must match the vhash specified in the request. 
 The sender can skip any cells that are not available, so the requester can fetch them 
 from other peers.
+
+The cellAndProof element contains the cell data along with the proof needed to verify 
+that it belongs to the original payload. 
+While its structure can vary depending on the verification method, 
+it should allow the recipient to infer which cell IDs were skipped.
 
 ## Change Log
 
