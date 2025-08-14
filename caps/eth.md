@@ -547,7 +547,7 @@ it should allow the recipient to infer which cell IDs were skipped.
 
 Version 70 changed the [Transactions] and [NewPooledTransactionHashes] message to include 
 custody information which represents cell IDs sending peer has stored. New message types,
-[GetCells] and [Cells] were introduced to support cell-level messaging.
+[GetCellAndProofs] and [CellAndProofs] were introduced to support cell-level messaging.
 
 ### eth/69 ([EIP-7642], April 2025)
 
@@ -662,6 +662,8 @@ Version numbers below 60 were used during the Ethereum PoC development phase.
 [GetReceipts]: #getreceipts-0x0f
 [Receipts]: #receipts-0x10
 [BlockRangeUpdate]: #blockrangeupdate-0x11
+[GetCellAndProofs]: #getcellandproofs-0x12
+[CellAndProofs]: #cellandproofs-0x13
 [RLPx]: ../rlpx.md
 [EIP-155]: https://eips.ethereum.org/EIPS/eip-155
 [EIP-1559]: https://eips.ethereum.org/EIPS/eip-1559
