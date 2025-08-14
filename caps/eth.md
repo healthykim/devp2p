@@ -361,11 +361,11 @@ of the sending node.
 
 ### Transactions (0x02)
 
-`[[tx₁, tx₂, ...], custodyInfo: B]`
+`[[tx₁, tx₂, ...], custodyids: B]`
 
 Specify transactions that the peer should make sure is included on its transaction queue.
 The items in the list are transactions in the format described in the main Ethereum
-specification. The custodyInfo element is a bitmap representing which cell IDs in transaction 
+specification. The custodyids element is a bitmap representing which cell IDs in transaction 
 payloads are stored by the sending peer, with each stored cell’s index marked as 1. 
 Transactions messages must contain at least one (new) transaction, empty
 Transactions messages are discouraged and may lead to disconnection.
@@ -420,7 +420,7 @@ block.
 
 ### NewPooledTransactionHashes (0x08)
 
-`[txtypes: B, [txsize₁: P, txsize₂: P, ...], [txhash₁: B_32, txhash₂: B_32, ...], custodyInfo: B]`
+`[txtypes: B, [txsize₁: P, txsize₂: P, ...], [txhash₁: B_32, txhash₂: B_32, ...], custodyids: B]`
 
 This message announces one or more transactions that have appeared in the network and
 which have not yet been included in a block. The message payload describes a list of of
@@ -435,7 +435,7 @@ The txtypes, sizes, and hashes must contain an equal number of items.
 the byte size of `tx-type || tx-data` for typed transactions, and the size of the
 RLP-encoded `legacy-tx` for non-typed legacy transactions.
 
-The custodyInfo element is a bitmap marking the IDs of cells in the transaction payload 
+The custodyids element is a bitmap marking the IDs of cells in the transaction payload 
 stored by the sending peer, with each stored cell’s index set to 1.
 
 The recommended soft limit for this message is 4096 items (~150 KiB).
@@ -519,11 +519,11 @@ received updates.
 
 ### GetCellAndProofs (0x12)
 
-`[request-id: P, [vhash₁: B_32, vhash₂: B_32, ...], custodyInfo: B]`
+`[request-id: P, [vhash₁: B_32, vhash₂: B_32, ...], custodyids: B]`
 
 This message request peer to return cells and proofs of the given versioned hash 
 of the payload commitment.
-The custodyInfo element represents IDs of cells required.
+The custodyids element is a bitmap representing IDs of cells required.
 
 ### CellAndProofs (0x13)
 
