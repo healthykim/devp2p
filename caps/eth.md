@@ -174,8 +174,8 @@ observing `AVAILABILITY_THRESHOLD` distinct full-availability announcements.
 ### Transaction Encoding and Validity
 
 Transaction objects exchanged by peers may be encoded in more than one way. In definitions
-across this specification, we refer to transactions in their consensus encoding, the form
-in which they appear in blocks, using the identifier `txₙ`.
+across this specification, we refer to transactions as they appear in blocks using the
+identifier `txₙ`.
 
     tx = {legacy-tx, typed-tx}
 
@@ -561,8 +561,14 @@ other two payload elements refer to the sizes and hashes of the announced transa
 All three payload elements must contain an equal number of items.
 
 `txsizeₙ` is the byte length of the announced transaction in its [network encoding], on
-the protocol version negotiated for this connection. The RLP string header which frames a
-typed transaction as an element of the enclosing [PooledTransactions] list is not counted.
+the protocol version negotiated for this connection. It is the length of:
+
+- the RLP encoding of `legacy-tx`, for legacy transactions;
+- `tx-type || tx-data`, for typed transactions whose type defines no wrapped encoding;
+- the whole `wrapped-tx`, for types which do.
+
+The RLP string header which frames a typed transaction as an element of the enclosing
+[PooledTransactions] list is not counted.
 
 A peer must announce the size of the transaction it holds. A receiver may recompute
 `txsizeₙ` from a transaction it has been served — evaluating it at the protocol version on
