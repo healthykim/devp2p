@@ -149,11 +149,11 @@ In this message, the peer also announces its cell availability through the `cell
 Each set bit indicates that the peer holds the corresponding cell for every blob in the 
 announced transactions.
 
-Responses to [GetPooledTransactions] for blob transactions include the traditional
-transaction payload and blob metadata. The blob data itself can be obtained only by
-[GetCells]. Upon receiving the [NewPooledTransactionHashes] message with new blob
-transaction hashes, the node begins fetching their cells. For each transaction, it first
-makes a probabilistic decision between two strategies.
+Responses to [GetPooledTransactions] serve blob transactions in their [network encoding],
+with the blob data elided. The blob data itself can be obtained only by [GetCells]. Upon
+receiving the [NewPooledTransactionHashes] message with new blob transaction hashes, the
+node begins fetching their cells. For each transaction, it first makes a probabilistic
+decision between two strategies.
 
 With probability $p$, the node fetches the full blobs. It requests them using the
 [GetCells] message, setting more than half of the total cell indices to 1 in the cells
@@ -174,8 +174,8 @@ observing `AVAILABILITY_THRESHOLD` distinct full-availability announcements.
 ### Transaction Encoding and Validity
 
 Transaction objects exchanged by peers may be encoded in more than one way. In definitions
-across this specification, we refer to transactions as they appear in blocks using the
-identifier `txₙ`.
+across this specification, we refer to transactions in their consensus encoding, the form
+in which they appear in blocks, using the identifier `txₙ`.
 
     tx = {legacy-tx, typed-tx}
 
@@ -198,17 +198,19 @@ transaction type (`tx-type`) and the remaining bytes are opaque type-specific da
 
     typed-tx = tx-type || tx-data
 
-#### Pooled Encoding
+#### Network Encoding
 
 Certain transaction types carry auxiliary data which is required to validate the
 transaction in the pool, but which is not part of the transaction as it appears in a
-block. Transactions of such a type therefore have a second, 'pooled' encoding, used by
-[PooledTransactions]. In definitions across this specification, we refer to transactions
-in this encoding using the identifier `pooled-txₙ`.
+block. Such types define a second, 'wrapped' encoding carrying this data. In definitions
+across this specification, we refer to transactions in their network encoding using the
+identifier `net-txₙ`: the wrapped encoding for types which define one, and the consensus
+encoding otherwise.
 
-For a transaction whose `tx-type` defines no wrapped form, the pooled encoding is
-identical to `tx`. Types which do define one — currently only type `0x03`, introduced by
-[EIP-4844] — are encoded as:
+    net-tx = {tx, wrapped-tx}
+
+Currently, the only type defining a wrapped encoding is type `0x03`, introduced by
+[EIP-4844]. It is encoded as:
 
     wrapped-tx = tx-type || rlp([
         tx-payload-body,
@@ -495,8 +497,8 @@ relay transactions to a peer they received that transaction from. In practice th
 often implemented by keeping a per-peer bloom filter or set of transaction hashes which
 have already been sent or received.
 
-Transactions of a type which defines a wrapped [pooled encoding] must not be sent in this
-message. Per [EIP-4844], such transactions are only ever announced with
+Transactions of a type which defines a wrapped [network encoding] must not be sent in
+this message. Per [EIP-4844], such transactions are only ever announced with
 [NewPooledTransactionHashes] and served on request via [GetPooledTransactions].
 
 ### GetBlockHeaders (0x03)
@@ -558,15 +560,9 @@ The `txtypes` element is a byte array containing the announced [transaction type
 other two payload elements refer to the sizes and hashes of the announced transactions.
 All three payload elements must contain an equal number of items.
 
-`txsizeₙ` is the byte length of the announced transaction in the [pooled encoding], on the
-protocol version negotiated for this connection. It is the length of:
-
-- the RLP encoding of `legacy-tx`, for legacy transactions;
-- `tx-type || tx-data`, for typed transactions whose type defines no wrapped form;
-- the whole `wrapped-tx`, for types which do.
-
-The RLP string header which frames a typed transaction as an element of the enclosing
-[PooledTransactions] list is not counted.
+`txsizeₙ` is the byte length of the announced transaction in its [network encoding], on
+the protocol version negotiated for this connection. The RLP string header which frames a
+typed transaction as an element of the enclosing [PooledTransactions] list is not counted.
 
 A peer must announce the size of the transaction it holds. A receiver may recompute
 `txsizeₙ` from a transaction it has been served — evaluating it at the protocol version on
@@ -603,10 +599,10 @@ must not be considered a protocol violation.
 
 ### PooledTransactions (0x0a)
 
-`[request-id: P, [pooled-tx₁, pooled-tx₂, ...]]`
+`[request-id: P, [net-tx₁, net-tx₂, ...]]`
 
 This is the response to GetPooledTransactions, returning the requested transactions from
-the local pool, in the [pooled encoding].
+the local pool, in their [network encoding].
 
 The transactions must be in same order as in the request, but it is OK to skip
 transactions which are not available. This way, if the response size limit is reached,
@@ -747,7 +743,8 @@ The recommended soft limit for Cells responses is 2 MiB.
 
 Version 72 changed the [NewPooledTransactionHashes] message to include blob transaction
 cell custody information. New message types, [GetCells] and [Cells], were introduced to
-support cell-level blob relay.
+support cell-level blob relay. Blob data is elided from the wrapped [network encoding] in
+[PooledTransactions] responses, and `txsizeₙ` announcements account for this elision.
 
 ### eth/71 ([EIP-8159], June 2026)
 
@@ -880,7 +877,7 @@ Version numbers below 60 were used during the Ethereum PoC development phase.
 [NewPooledTransactionHashes]: #newpooledtransactionhashes-0x08
 [GetPooledTransactions]: #getpooledtransactions-0x09
 [PooledTransactions]: #pooledtransactions-0x0a
-[pooled encoding]: #pooled-encoding
+[network encoding]: #network-encoding
 [GetReceipts]: #getreceipts-0x0f
 [Receipts]: #receipts-0x10
 [BlockRangeUpdate]: #blockrangeupdate-0x11
